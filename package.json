@@ -1,0 +1,23 @@
+{
+  "name": "raml2swagger",
+  "version": "0.0.0",
+  "description": "A converter from RAML to Swagger",
+  "main": "app.js",
+  "directories": {
+    "example": "examples"
+  },
+  "dependencies": {
+    "json2yaml": "^1.0.3",
+    "raml-parser": "^0.8.11",
+    "yamljs": "^0.2.2"
+  },
+  "devDependencies": {
+    "json2yaml": "^1.0.3",
+    "raml-parser": "^0.8.11"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jose M. Perez <jmperez1985@gmail.com>",
+  "license": "MIT"
+}
