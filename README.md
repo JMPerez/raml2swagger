@@ -4,7 +4,7 @@ This is a RAML to Swagger converter. Note that it's under heavy development and 
 
 ## How to run it
 
-Install npm packages
+Install npm packages:
 
 `npm install`
 
