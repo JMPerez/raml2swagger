@@ -74,7 +74,7 @@ function processResource(resource, prefix, parentBaseParameters) {
         var responseObject = {};
         Object.keys(method.responses).map(function(key) {
           responseObject[key] = {
-            description: ''
+            description: method.responses[key].description
           };
           //todo: add schema to responseObject
         });
