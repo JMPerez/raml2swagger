@@ -5,15 +5,50 @@ var YAML = require('json2yaml');
 
 var sourceFile = process.argv[2];
 var outputFile = process.argv[3];
-raml.loadFile(sourceFile).then(function(source) {
 
+var output = null;
+
+function processResource(resource, prefix) {
+  output.paths[prefix + resource.relativeUri] = {};
+  if (resource.methods) {
+    resource.methods.forEach(function(method) {
+      output.paths[prefix + resource.relativeUri][method.method] = {
+        description: method.description,
+        operationId: '',
+        parameters: method.queryParameters ? Object.keys(method.queryParameters).map(function(key) {
+          return {
+            name: key,
+            in: 'query',
+            description: method.queryParameters[key].description,
+            required: method.queryParameters[key].required || false,
+            type: method.queryParameters[key].type
+          };
+        }) : [],
+        responses: method.responses ? (function() {
+          var responseObject = {};
+          Object.keys(method.responses).map(function(key) {
+            responseObject[key] = {};
+          });
+        })() : {}
+      }
+    });
+  }
+
+  if (resource.resources) {
+    resource.resources.forEach(function(futureResource) {
+      processResource(futureResource, prefix + resource.relativeUri);
+    });
+  }
+}
+
+raml.loadFile(sourceFile).then(function(source) {
   var baseUrl = url.parse(source.baseUri);
-    var output = {
+    output = {
       swagger: '2.0',
       info: {
         version: source.version,
         title: source.title,
-        description: source.documentation[0].title,
+        description: source.documentation ? source.documentation[0].title : '',
         termsOfService: '',
         contact: {},
         license: {}
@@ -27,31 +62,7 @@ raml.loadFile(sourceFile).then(function(source) {
     };
 
     source.resources.forEach(function(resource) {
-      output.paths[resource.relativeUri] = {};
-
-      resource.methods.forEach(function(method) {
-
-        output.paths[resource.relativeUri][method.method] = {
-          description: method.description,
-          operationId: '',
-          parameters: method.queryParameters ? Object.keys(method.queryParameters).map(function(key) {
-            return {
-              name: key,
-              in: 'query',
-              description: method.queryParameters[key].description,
-              required: method.queryParameters[key].required || false,
-              type: method.queryParameters[key].type
-            };
-          }) : [],
-          responses: method.responses ? (function() {
-            var responseObject = {};
-            Object.keys(method.responses).map(function(key) {
-              responseObject[key] = {};
-            });
-          })() : {}
-        }
-      });
-
+      processResource(resource, '');
     });
 
     fs.writeFileSync(outputFile, YAML.stringify(output, 2));
