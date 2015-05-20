@@ -12,25 +12,43 @@ function processResource(resource, prefix) {
   output.paths[prefix + resource.relativeUri] = {};
   if (resource.methods) {
     resource.methods.forEach(function(method) {
-      output.paths[prefix + resource.relativeUri][method.method] = {
-        description: method.description,
-        operationId: '',
-        parameters: method.queryParameters ? Object.keys(method.queryParameters).map(function(key) {
-          return {
-            name: key,
-            in: 'query',
-            description: method.queryParameters[key].description,
-            required: method.queryParameters[key].required || false,
-            type: method.queryParameters[key].type
-          };
-        }) : [],
-        responses: method.responses ? (function() {
-          var responseObject = {};
-          Object.keys(method.responses).map(function(key) {
-            responseObject[key] = {};
-          });
-        })() : {}
+      var parameters = method.queryParameters ? Object.keys(method.queryParameters).map(function(key) {
+
+        var parameterInfo = {
+          name: key,
+          in: 'query',
+          description: method.queryParameters[key].description,
+          type: method.queryParameters[key].type
+        };
+
+        if (method.queryParameters[key].required) {
+          parameterInfo.required = true;
+        }
+        return parameterInfo;
+
+      }) : [];
+
+      var responses = null;
+      if (method.responses) {
+        var responseObject = {};
+        Object.keys(method.responses).map(function(key) {
+          responseObject[key] = {};
+        });
       }
+
+      var methodInfo = {
+        description: method.description
+      };
+
+      if (parameters.length) {
+        methodInfo.parameters = parameters;
+      }
+
+      if (responses !== null) {
+        methodInfo.responses = responses;
+      }
+
+      output.paths[prefix + resource.relativeUri][method.method] = methodInfo;
     });
   }
 
