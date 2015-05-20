@@ -98,7 +98,7 @@ raml.loadFile(sourceFile).then(function(source) {
         license: {}
       },
       host: baseUrl.host,
-      basePath: baseUrl.pathname,
+      basePath: baseUrl.pathname.replace('{version}', source.version),
       schemes: [baseUrl.protocol.replace(':', '')],
       consumes: ['application/json'],
       produces: ['application/json'],
