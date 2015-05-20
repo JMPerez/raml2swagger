@@ -8,12 +8,27 @@ var outputFile = process.argv[3];
 
 var output = null;
 
-function processResource(resource, prefix) {
+function processResource(resource, prefix, parentBaseParameters) {
   output.paths[prefix + resource.relativeUri] = {};
+
+  var baseParameters = parentBaseParameters;
+  baseParameters = baseParameters.concat(resource.uriParameters ? Object.keys(resource.uriParameters).map(function(key) {
+    var parameterInfo = {
+      name: key,
+      in: 'path',
+      description: resource.uriParameters[key].description,
+      type: resource.uriParameters[key].type,
+      required: true
+    };
+
+    return parameterInfo;
+  }) : []);
+
   if (resource.methods) {
     resource.methods.forEach(function(method) {
-      var parameters = method.queryParameters ? Object.keys(method.queryParameters).map(function(key) {
 
+      var parameters = baseParameters;
+      parameters = parameters.concat(method.queryParameters ? Object.keys(method.queryParameters).map(function(key) {
         var parameterInfo = {
           name: key,
           in: 'query',
@@ -26,26 +41,37 @@ function processResource(resource, prefix) {
         }
         return parameterInfo;
 
-      }) : [];
+      }) : []);
 
-      var responses = null;
-      if (method.responses) {
-        var responseObject = {};
-        Object.keys(method.responses).map(function(key) {
-          responseObject[key] = {};
-        });
+      // add body
+      var body = method.body;
+      if (body) {
+        if (body['application/json']) {
+          parameters.push({
+            name: 'body',
+            in: 'body',
+            schema: null  // todo: add this
+          })
+        } // todo: add rest of types. See http://raml.org/docs-200.html#body-parameters
       }
 
       var methodInfo = {
         description: method.description
       };
 
-      if (parameters.length) {
-        methodInfo.parameters = parameters;
+      if (method.responses) {
+        var responseObject = {};
+        Object.keys(method.responses).map(function(key) {
+          responseObject[key] = {
+            description: ''
+          };
+          //todo: add schema to responseObject
+        });
+        methodInfo.responses = responseObject;
       }
 
-      if (responses !== null) {
-        methodInfo.responses = responses;
+      if (parameters.length) {
+        methodInfo.parameters = parameters;
       }
 
       output.paths[prefix + resource.relativeUri][method.method] = methodInfo;
@@ -54,7 +80,7 @@ function processResource(resource, prefix) {
 
   if (resource.resources) {
     resource.resources.forEach(function(futureResource) {
-      processResource(futureResource, prefix + resource.relativeUri);
+      processResource(futureResource, prefix + resource.relativeUri, baseParameters);
     });
   }
 }
@@ -80,7 +106,7 @@ raml.loadFile(sourceFile).then(function(source) {
     };
 
     source.resources.forEach(function(resource) {
-      processResource(resource, '');
+      processResource(resource, '', []);
     });
 
     fs.writeFileSync(outputFile, YAML.stringify(output, 2));
