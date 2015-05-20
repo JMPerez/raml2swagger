@@ -13,13 +13,20 @@ function processResource(resource, prefix, parentBaseParameters) {
 
   var baseParameters = parentBaseParameters;
   baseParameters = baseParameters.concat(resource.uriParameters ? Object.keys(resource.uriParameters).map(function(key) {
+    var baseParameter = resource.uriParameters[key];
     var parameterInfo = {
       name: key,
       in: 'path',
-      description: resource.uriParameters[key].description,
-      type: resource.uriParameters[key].type,
+      description: baseParameter.description,
+      type: baseParameter.type,
       required: true
     };
+
+    ['enum', 'default', 'minimum', 'maximum', 'minLength', 'maxLength', 'pattern'].forEach(function(property) {
+      if (property in baseParameter) {
+        parameterInfo[property] = baseParameter[property];
+      }
+    });
 
     return parameterInfo;
   }) : []);
@@ -29,16 +36,20 @@ function processResource(resource, prefix, parentBaseParameters) {
 
       var parameters = baseParameters;
       parameters = parameters.concat(method.queryParameters ? Object.keys(method.queryParameters).map(function(key) {
+        var queryParameter = method.queryParameters[key];
         var parameterInfo = {
           name: key,
           in: 'query',
-          description: method.queryParameters[key].description,
-          type: method.queryParameters[key].type
+          description: queryParameter.description,
+          type: queryParameter.type
         };
 
-        if (method.queryParameters[key].required) {
-          parameterInfo.required = true;
-        }
+        ['enum', 'default', 'minimum', 'maximum', 'minLength', 'maxLength', 'pattern', 'required'].forEach(function(property) {
+          if (property in queryParameter) {
+            parameterInfo[property] = queryParameter[property];
+          }
+        });
+
         return parameterInfo;
 
       }) : []);
