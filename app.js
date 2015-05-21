@@ -8,27 +8,33 @@ var outputFile = process.argv[3];
 
 var output = null;
 
+function buildParameter(name, where, object) {
+  var parameterInfo = {
+    name: name,
+    in: where,
+    description: object.description,
+    type: object.type
+  };
+
+  ['enum', 'default', 'minimum', 'maximum', 'minLength', 'maxLength', 'pattern', 'required'].forEach(function(property) {
+    if (property in object) {
+      parameterInfo[property] = object[property];
+    }
+  });
+
+  if (where === 'path') {
+    parameterInfo.required = true;
+  }
+
+  return parameterInfo;
+}
+
 function processResource(resource, prefix, parentBaseParameters) {
   output.paths[prefix + resource.relativeUri] = {};
 
   var baseParameters = parentBaseParameters;
   baseParameters = baseParameters.concat(resource.uriParameters ? Object.keys(resource.uriParameters).map(function(key) {
-    var baseParameter = resource.uriParameters[key];
-    var parameterInfo = {
-      name: key,
-      in: 'path',
-      description: baseParameter.description,
-      type: baseParameter.type,
-      required: true
-    };
-
-    ['enum', 'default', 'minimum', 'maximum', 'minLength', 'maxLength', 'pattern'].forEach(function(property) {
-      if (property in baseParameter) {
-        parameterInfo[property] = baseParameter[property];
-      }
-    });
-
-    return parameterInfo;
+    return buildParameter(key, 'path', baseParameter);
   }) : []);
 
   if (resource.methods) {
@@ -36,22 +42,7 @@ function processResource(resource, prefix, parentBaseParameters) {
 
       var parameters = baseParameters;
       parameters = parameters.concat(method.queryParameters ? Object.keys(method.queryParameters).map(function(key) {
-        var queryParameter = method.queryParameters[key];
-        var parameterInfo = {
-          name: key,
-          in: 'query',
-          description: queryParameter.description,
-          type: queryParameter.type
-        };
-
-        ['enum', 'default', 'minimum', 'maximum', 'minLength', 'maxLength', 'pattern', 'required'].forEach(function(property) {
-          if (property in queryParameter) {
-            parameterInfo[property] = queryParameter[property];
-          }
-        });
-
-        return parameterInfo;
-
+        return buildParameter(key, 'query', baseParameter);
       }) : []);
 
       // add body
@@ -63,7 +54,13 @@ function processResource(resource, prefix, parentBaseParameters) {
             in: 'body',
             schema: null  // todo: add this
           })
-        } // todo: add rest of types. See http://raml.org/docs-200.html#body-parameters
+        } else if (body['application/x-www-form-urlencoded']) {
+          var params = body['application/x-www-form-urlencoded'].formParameters;
+          parameters = parameters.concat(params ? Object.keys(params).map(function(key) {
+            return buildParameter(key, 'form', params[key]);
+          }) : []);
+        }
+        // todo: add rest of types. See http://raml.org/docs-200.html#body-parameters
       }
 
       var methodInfo = {
@@ -98,29 +95,29 @@ function processResource(resource, prefix, parentBaseParameters) {
 
 raml.loadFile(sourceFile).then(function(source) {
   var baseUrl = url.parse(source.baseUri);
-    output = {
-      swagger: '2.0',
-      info: {
-        version: source.version,
-        title: source.title,
-        description: source.documentation ? source.documentation[0].title : '',
-        termsOfService: '',
-        contact: {},
-        license: {}
-      },
-      host: baseUrl.host,
-      basePath: baseUrl.pathname.replace('{version}', source.version),
-      schemes: [baseUrl.protocol.replace(':', '')],
-      consumes: ['application/json'],
-      produces: ['application/json'],
-      paths: {}
-    };
+  output = {
+    swagger: '2.0',
+    info: {
+      version: source.version,
+      title: source.title,
+      description: source.documentation ? source.documentation[0].title : '',
+      termsOfService: '',
+      contact: {},
+      license: {}
+    },
+    host: baseUrl.host,
+    basePath: decodeURIComponent(baseUrl.pathname.replace('{version}', source.version)),
+    schemes: [baseUrl.protocol.replace(':', '')],
+    consumes: ['application/json'],
+    produces: ['application/json'],
+    paths: {}
+  };
 
-    source.resources.forEach(function(resource) {
-      processResource(resource, '', []);
-    });
+  source.resources.forEach(function(resource) {
+    processResource(resource, '', []);
+  });
 
-    fs.writeFileSync(outputFile, YAML.stringify(output, 2));
+  fs.writeFileSync(outputFile, YAML.stringify(output, 2));
 
 }).catch(function(e) {
   console.error(e);
