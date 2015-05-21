@@ -8,12 +8,37 @@ var outputFile = process.argv[3];
 
 var output = null;
 
+/**
+ * Converts the data type
+ * Note that RAML doesn't support format, so this would need to be added manually in
+ * the output Swagger. For more information about the data types read
+ * https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md#data-types
+ * http://raml.org/spec.html#type
+ *
+ * @param  {string} type [description]
+ * @return {string}      [description]
+ */
+function convertDataType(type) {
+  /*
+    string => string
+    number => float || double
+    integer => integer
+    date => date
+    boolean => boolean
+    file => file
+   */
+  switch (type) {
+    case 'number': return 'float';
+    default: return type;
+  }
+}
+
 function buildParameter(name, where, object) {
   var parameterInfo = {
     name: name,
     in: where,
     description: object.description,
-    type: object.type
+    type: convertDataType(object.type)
   };
 
   ['enum', 'default', 'minimum', 'maximum', 'minLength', 'maxLength', 'pattern', 'required'].forEach(function(property) {
