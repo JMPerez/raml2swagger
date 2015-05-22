@@ -1,3 +1,5 @@
+'use strict';
+
 var raml = require('raml-parser');
 var url = require('url');
 var fs = require('fs');
@@ -41,7 +43,16 @@ function buildParameter(name, where, object) {
     type: convertDataType(object.type)
   };
 
-  ['enum', 'default', 'minimum', 'maximum', 'minLength', 'maxLength', 'pattern', 'required'].forEach(function(property) {
+  [
+    'enum',
+    'default',
+    'minimum',
+    'maximum',
+    'minLength',
+    'maxLength',
+    'pattern',
+    'required'
+  ].forEach(function(property) {
     if (property in object) {
       parameterInfo[property] = object[property];
     }
@@ -58,17 +69,19 @@ function processResource(resource, prefix, parentBaseParameters) {
   output.paths[prefix + resource.relativeUri] = {};
 
   var baseParameters = parentBaseParameters;
-  baseParameters = baseParameters.concat(resource.uriParameters ? Object.keys(resource.uriParameters).map(function(key) {
-    return buildParameter(key, 'path', baseParameter);
-  }) : []);
+  baseParameters = baseParameters.concat(resource.uriParameters ?
+    Object.keys(resource.uriParameters).map(function(key) {
+      return buildParameter(key, 'path', resource.uriParameters[key]);
+    }) : []);
 
   if (resource.methods) {
     resource.methods.forEach(function(method) {
 
       var parameters = baseParameters;
-      parameters = parameters.concat(method.queryParameters ? Object.keys(method.queryParameters).map(function(key) {
-        return buildParameter(key, 'query', baseParameter);
-      }) : []);
+      parameters = parameters.concat(method.queryParameters ?
+        Object.keys(method.queryParameters).map(function(key) {
+          return buildParameter(key, 'query', resource.queryParameters[key]);
+        }) : []);
 
       // add body
       var body = method.body;
@@ -78,12 +91,14 @@ function processResource(resource, prefix, parentBaseParameters) {
             name: 'body',
             in: 'body',
             schema: null  // todo: add this
-          })
+          });
         } else if (body['application/x-www-form-urlencoded']) {
-          var params = body['application/x-www-form-urlencoded'].formParameters;
-          parameters = parameters.concat(params ? Object.keys(params).map(function(key) {
-            return buildParameter(key, 'form', params[key]);
-          }) : []);
+          var params = body['application/x-www-form-urlencoded']
+            .formParameters;
+          parameters = parameters.concat(params ?
+            Object.keys(params).map(function(key) {
+              return buildParameter(key, 'form', params[key]);
+            }) : []);
         }
         // todo: add rest of types. See http://raml.org/docs-200.html#body-parameters
       }
@@ -95,10 +110,10 @@ function processResource(resource, prefix, parentBaseParameters) {
       if (method.responses) {
         var responseObject = {};
         Object.keys(method.responses).map(function(key) {
+          // todo: add schema to responseObject
           responseObject[key] = {
             description: method.responses[key].description
           };
-          //todo: add schema to responseObject
         });
         methodInfo.responses = responseObject;
       }
@@ -113,13 +128,17 @@ function processResource(resource, prefix, parentBaseParameters) {
 
   if (resource.resources) {
     resource.resources.forEach(function(futureResource) {
-      processResource(futureResource, prefix + resource.relativeUri, baseParameters);
+      processResource(
+        futureResource,
+        prefix + resource.relativeUri,
+      baseParameters);
     });
   }
 }
 
 raml.loadFile(sourceFile).then(function(source) {
   var baseUrl = url.parse(source.baseUri);
+  var basePath = baseUrl.pathname.replace('{version}', source.version);
   output = {
     swagger: '2.0',
     info: {
@@ -131,7 +150,7 @@ raml.loadFile(sourceFile).then(function(source) {
       license: {}
     },
     host: baseUrl.host,
-    basePath: decodeURIComponent(baseUrl.pathname.replace('{version}', source.version)),
+    basePath: decodeURIComponent(basePath),
     schemes: [baseUrl.protocol.replace(':', '')],
     consumes: ['application/json'],
     produces: ['application/json'],
