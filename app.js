@@ -10,6 +10,8 @@ var outputFile = process.argv[3];
 
 var output = null;
 
+var OAUTH2_API_NAME = 'api_auth';
+
 /**
  * Converts the data type
  * Note that RAML doesn't support format, so this would need to be added manually in
@@ -122,6 +124,17 @@ function processResource(resource, prefix, parentBaseParameters) {
         methodInfo.parameters = parameters;
       }
 
+      if (method.securedBy) {
+        method.securedBy.forEach(function(securedBy) {
+          if ('oauth_2_0' in securedBy) {
+            var methodSecurity = {};
+            methodSecurity[OAUTH2_API_NAME] = securedBy.oauth_2_0.scopes || [];
+            methodInfo.security = methodInfo.security || [];
+            methodInfo.security.push(methodSecurity);
+          }
+        });
+      }
+
       output.paths[prefix + resource.relativeUri][method.method] = methodInfo;
     });
   }
@@ -153,23 +166,19 @@ raml.loadFile(sourceFile).then(function(source) {
     basePath: decodeURIComponent(basePath),
     schemes: [baseUrl.protocol.replace(':', '')],
     consumes: ['application/json'],
-    produces: ['application/json'],
-    paths: {}
+    produces: ['application/json']
   };
-
-  source.resources.forEach(function(resource) {
-    processResource(resource, '', []);
-  });
 
   if (source.securitySchemes) {
     source.securitySchemes.forEach(function(securityScheme) {
       var key = Object.keys(securityScheme)[0];
       var scheme = securityScheme[key];
-      console.log(scheme);
       switch (key) {
         case 'oauth_2_0':
+
           output.securityDefinitions = output.securityDefinitions || {};
-          output.securityDefinitions.api_auth = {
+
+          output.securityDefinitions[OAUTH2_API_NAME] = {
             description: scheme.description,
             name: 'Authorization',
             type: 'oauth2',
@@ -182,16 +191,30 @@ raml.loadFile(sourceFile).then(function(source) {
           if (scheme.settings) {
             // scopes
             if (scheme.settings.scopes) {
-              output.securityDefinitions.api_auth.scopes = {};
+              output.securityDefinitions[OAUTH2_API_NAME].scopes = {};
+              output.security = output.security || [];
+              var securityGroup = {};
+              securityGroup[OAUTH2_API_NAME] = [];
               scheme.settings.scopes.forEach(function(scope) {
-                output.securityDefinitions.api_auth.scopes[scope] = 'Description for ' + scope;
+                output.securityDefinitions[OAUTH2_API_NAME].scopes[scope] = 'Description for ' + scope;
+                securityGroup[OAUTH2_API_NAME].push(scope);
               });
+              output.security.push(securityGroup);
             }
           }
+          break;
+
+        default:
           break;
       }
     });
   }
+
+  output.paths = {};
+
+  source.resources.forEach(function(resource) {
+    processResource(resource, '', []);
+  });
 
   fs.writeFileSync(outputFile, YAML.stringify(output, 2));
 
