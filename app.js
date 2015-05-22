@@ -80,7 +80,7 @@ function processResource(resource, prefix, parentBaseParameters) {
       var parameters = baseParameters;
       parameters = parameters.concat(method.queryParameters ?
         Object.keys(method.queryParameters).map(function(key) {
-          return buildParameter(key, 'query', resource.queryParameters[key]);
+          return buildParameter(key, 'query', method.queryParameters[key]);
         }) : []);
 
       // add body
@@ -160,6 +160,38 @@ raml.loadFile(sourceFile).then(function(source) {
   source.resources.forEach(function(resource) {
     processResource(resource, '', []);
   });
+
+  if (source.securitySchemes) {
+    source.securitySchemes.forEach(function(securityScheme) {
+      var key = Object.keys(securityScheme)[0];
+      var scheme = securityScheme[key];
+      console.log(scheme);
+      switch (key) {
+        case 'oauth_2_0':
+          output.securityDefinitions = output.securityDefinitions || {};
+          output.securityDefinitions.api_auth = {
+            description: scheme.description,
+            name: 'Authorization',
+            type: 'oauth2',
+            in: 'header',
+            flow: 'accessCode',
+            authorizationUrl: scheme.settings.authorizationUri,
+            tokenUrl: scheme.settings.accessTokenUri
+          };
+
+          if (scheme.settings) {
+            // scopes
+            if (scheme.settings.scopes) {
+              output.securityDefinitions.api_auth.scopes = {};
+              scheme.settings.scopes.forEach(function(scope) {
+                output.securityDefinitions.api_auth.scopes[scope] = 'Description for ' + scope;
+              });
+            }
+          }
+          break;
+      }
+    });
+  }
 
   fs.writeFileSync(outputFile, YAML.stringify(output, 2));
 
