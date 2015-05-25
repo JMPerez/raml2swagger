@@ -114,7 +114,7 @@ function processResource(resource, prefix, parentBaseParameters) {
         Object.keys(method.responses).map(function(key) {
           // todo: add schema to responseObject
           responseObject[key] = {
-            description: method.responses[key].description
+            description: method.responses[key] ? method.responses[key].description : ''
           };
         });
         methodInfo.responses = responseObject;
