@@ -26,7 +26,8 @@
     "coveralls": "~2.10.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "./node_modules/.bin/mocha",
+    "coveralls": "./node_modules/.bin/mocha -r blanket -R mocha-lcov-reporter | ./node_modules/coveralls/bin/coveralls.js"
   },
   "author": "Jose M. Perez <jmperez1985@gmail.com>",
   "license": "MIT"
