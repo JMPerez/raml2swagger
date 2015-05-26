@@ -2,12 +2,6 @@
 
 var raml = require('raml-parser');
 var url = require('url');
-var fs = require('fs');
-var YAML = require('json2yaml');
-
-var sourceFile = process.argv[2];
-var outputFile = process.argv[3];
-
 var output = null;
 
 var OAUTH2_API_NAME = 'api_auth';
@@ -149,75 +143,80 @@ function processResource(resource, prefix, parentBaseParameters) {
   }
 }
 
-raml.loadFile(sourceFile).then(function(source) {
-  var baseUrl = url.parse(source.baseUri);
-  var basePath = baseUrl.pathname.replace('{version}', source.version);
-  output = {
-    swagger: '2.0',
-    info: {
-      version: source.version,
-      title: source.title,
-      description: source.documentation ? source.documentation[0].title : '',
-      termsOfService: '',
-      contact: {},
-      license: {}
-    },
-    host: baseUrl.host,
-    basePath: decodeURIComponent(basePath),
-    schemes: [baseUrl.protocol.replace(':', '')],
-    consumes: ['application/json'],
-    produces: ['application/json']
-  };
+function processFile(sourceFile, callback) {
+  return raml.loadFile(sourceFile).then(function(source) {
+    var baseUrl = url.parse(source.baseUri);
+    var basePath = baseUrl.pathname.replace('{version}', source.version);
+    output = {
+      swagger: '2.0',
+      info: {
+        version: source.version,
+        title: source.title,
+        description: source.documentation ? source.documentation[0].title : '',
+        termsOfService: '',
+        contact: {},
+        license: {}
+      },
+      host: baseUrl.host,
+      basePath: decodeURIComponent(basePath),
+      schemes: [baseUrl.protocol.replace(':', '')],
+      consumes: ['application/json'],
+      produces: ['application/json']
+    };
 
-  if (source.securitySchemes) {
-    source.securitySchemes.forEach(function(securityScheme) {
-      var key = Object.keys(securityScheme)[0];
-      var scheme = securityScheme[key];
-      switch (key) {
-        case 'oauth_2_0':
+    if (source.securitySchemes) {
+      source.securitySchemes.forEach(function(securityScheme) {
+        var key = Object.keys(securityScheme)[0];
+        var scheme = securityScheme[key];
+        switch (key) {
+          case 'oauth_2_0':
 
-          output.securityDefinitions = output.securityDefinitions || {};
+            output.securityDefinitions = output.securityDefinitions || {};
 
-          output.securityDefinitions[OAUTH2_API_NAME] = {
-            description: scheme.description,
-            name: 'Authorization',
-            type: 'oauth2',
-            in: 'header',
-            flow: 'accessCode',
-            authorizationUrl: scheme.settings.authorizationUri,
-            tokenUrl: scheme.settings.accessTokenUri
-          };
+            output.securityDefinitions[OAUTH2_API_NAME] = {
+              description: scheme.description,
+              name: 'Authorization',
+              type: 'oauth2',
+              in: 'header',
+              flow: 'accessCode',
+              authorizationUrl: scheme.settings.authorizationUri,
+              tokenUrl: scheme.settings.accessTokenUri
+            };
 
-          if (scheme.settings) {
-            // scopes
-            if (scheme.settings.scopes) {
-              output.securityDefinitions[OAUTH2_API_NAME].scopes = {};
-              output.security = output.security || [];
-              var securityGroup = {};
-              securityGroup[OAUTH2_API_NAME] = [];
-              scheme.settings.scopes.forEach(function(scope) {
-                output.securityDefinitions[OAUTH2_API_NAME].scopes[scope] = 'Description for ' + scope;
-                securityGroup[OAUTH2_API_NAME].push(scope);
-              });
-              output.security.push(securityGroup);
+            if (scheme.settings) {
+              // scopes
+              if (scheme.settings.scopes) {
+                output.securityDefinitions[OAUTH2_API_NAME].scopes = {};
+                output.security = output.security || [];
+                var securityGroup = {};
+                securityGroup[OAUTH2_API_NAME] = [];
+                scheme.settings.scopes.forEach(function(scope) {
+                  output.securityDefinitions[OAUTH2_API_NAME].scopes[scope] = 'Description for ' + scope;
+                  securityGroup[OAUTH2_API_NAME].push(scope);
+                });
+                output.security.push(securityGroup);
+              }
             }
-          }
-          break;
+            break;
 
-        default:
-          break;
-      }
+          default:
+            break;
+        }
+      });
+    }
+
+    output.paths = {};
+
+    source.resources.forEach(function(resource) {
+      processResource(resource, '', []);
     });
-  }
 
-  output.paths = {};
+    callback(output);
 
-  source.resources.forEach(function(resource) {
-    processResource(resource, '', []);
+  }).catch(function(e) {
+    console.error(e);
+    callback(null);
   });
+}
 
-  fs.writeFileSync(outputFile, YAML.stringify(output, 2));
-
-}).catch(function(e) {
-  console.error(e);
-});
+module.exports = {processFile: processFile};
