@@ -1,0 +1,28 @@
+#%RAML 0.8
+---
+title: Test API
+baseUri: http://example.com
+version: 42
+/foo:
+  get:
+    description: get foo
+    queryParameters:
+      integer:
+        type: integer
+        description: an integer query parameter
+        example: 1
+      number:
+        type: number
+        description: a number query parameter
+        example: 1.5
+      boolean:
+        type: boolean
+        description: a boolean query parameter
+        example: true
+      date:
+        type: date
+        description: a date query parameter
+        example: 'Sun, 06 Nov 1994 08:49:37 GMT'
+      file:
+        type: file
+        description: a file query parameter

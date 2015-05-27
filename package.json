@@ -26,7 +26,9 @@
     "coveralls": "~2.10.0"
   },
   "scripts": {
+    "lint": "eslint src/app.js && jscs src/app.js",
     "test": "./node_modules/.bin/mocha",
+    "coverage": "./node_modules/.bin/mocha --require blanket --reporter html-cov > ./test/coverage.html",
     "coveralls": "./node_modules/.bin/mocha -r blanket -R mocha-lcov-reporter | ./node_modules/coveralls/bin/coveralls.js"
   },
   "author": "Jose M. Perez <jmperez1985@gmail.com>",

@@ -795,4 +795,59 @@ describe('Basic tests', function() {
       done();
     });
   });
+  it('should work with all query parameter types', function(done) {
+    raml2swagger.processFile('./test/fixtures/example-types.raml', function(output) {
+      var expected = {
+        "swagger": "2.0",
+        "info": {
+          "version": "42",
+          "title": "Test API",
+          "description": "",
+          "termsOfService": "",
+          "contact": {},
+          "license": {}
+        },
+        "host": "example.com",
+        "basePath": "/",
+        "schemes": ["http"],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "paths": {
+          "/foo": {
+            "get": {
+              "description": "get foo",
+              "parameters": [{
+                "name": "integer",
+                "in": "query",
+                "description": "an integer query parameter",
+                "type": "integer"
+              }, {
+                "name": "number",
+                "in": "query",
+                "description": "a number query parameter",
+                "type": "float"
+              }, {
+                "name": "boolean",
+                "in": "query",
+                "description": "a boolean query parameter",
+                "type": "boolean"
+              }, {
+                "name": "date",
+                "in": "query",
+                "description": "a date query parameter",
+                "type": "date"
+              }, {
+                "name": "file",
+                "in": "query",
+                "description": "a file query parameter",
+                "type": "file"
+              }]
+            }
+          }
+        }
+      };
+      JSON.stringify(output).should.eql(JSON.stringify(expected));
+      done();
+    });
+  });
 });
