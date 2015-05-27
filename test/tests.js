@@ -795,6 +795,7 @@ describe('Basic tests', function() {
       done();
     });
   });
+
   it('should work with all query parameter types', function(done) {
     raml2swagger.processFile('./test/fixtures/example-types.raml', function(output) {
       var expected = {
@@ -850,4 +851,65 @@ describe('Basic tests', function() {
       done();
     });
   });
+
+  it('should work with a basic oauth definition', function(done) {
+    raml2swagger.processFile('./test/fixtures/example-spotify-mini.raml', function(output) {
+      var expected = {
+        "swagger": "2.0",
+        "info": {
+          "version": "v1",
+          "title": "Spotify Web API",
+          "description": "",
+          "termsOfService": "",
+          "contact": {},
+          "license": {}
+        },
+        "host": "api.spotify.com",
+        "basePath": "/v1",
+        "schemes": ["https"],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "securityDefinitions": {
+          "api_auth": {
+            "description": "Spotify supports OAuth 2.0 for authenticating all API requests.\n",
+            "name": "Authorization",
+            "type": "oauth2",
+            "in": "header",
+            "flow": "accessCode",
+            "authorizationUrl": "https://accounts.spotify.com/authorize",
+            "tokenUrl": "https://accounts.spotify.com/api/token",
+            "scopes": {
+              "playlist-modify-public": "Description for playlist-modify-public",
+              "playlist-modify-private": "Description for playlist-modify-private",
+              "playlist-read-collaborative": "Description for playlist-read-collaborative",
+              "playlist-read-private": "Description for playlist-read-private",
+              "user-library-read": "Description for user-library-read",
+              "user-library-modify": "Description for user-library-modify",
+              "user-read-private": "Description for user-read-private",
+              "user-read-birthdate": "Description for user-read-birthdate",
+              "user-read-email": "Description for user-read-email",
+              "user-follow-read": "Description for user-follow-read",
+              "user-follow-modify": "Description for user-follow-modify"
+            }
+          }
+        },
+        "security": [{
+          "api_auth": ["playlist-modify-public", "playlist-modify-private", "playlist-read-collaborative", "playlist-read-private", "user-library-read", "user-library-modify", "user-read-private", "user-read-birthdate", "user-read-email", "user-follow-read", "user-follow-modify"]
+        }],
+        "paths": {
+          "/me": {
+            "get": {
+              "description": "[Get Current User's Profile](https://developer.spotify.com/web-api/get-current-users-profile/)\n",
+              "security": [{
+                "api_auth": ["user-read-private", "user-read-birthdate", "user-read-email"]
+              }]
+            }
+          }
+        }
+      };
+      JSON.stringify(output).should.eql(JSON.stringify(expected));
+      done();
+    });
+  });
+
 });
