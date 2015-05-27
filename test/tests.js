@@ -865,13 +865,13 @@ describe('Basic tests', function() {
           "license": {}
         },
         "host": "api.spotify.com",
-        "basePath": "/v1",
+        "basePath": "/{version}",
         "schemes": ["https"],
         "consumes": ["application/json"],
         "produces": ["application/json"],
         "securityDefinitions": {
           "api_auth": {
-            "description": "Spotify supports OAuth 2.0 for authenticating all API requests.\n",
+            "description": "Spotify supports OAuth 2.0 for authenticating all API requests.",
             "name": "Authorization",
             "type": "oauth2",
             "in": "header",
@@ -907,7 +907,7 @@ describe('Basic tests', function() {
           }
         }
       };
-      JSON.stringify(output).should.eql(JSON.stringify(expected));
+      output.should.eql(expected);
       done();
     });
   });
