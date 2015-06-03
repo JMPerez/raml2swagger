@@ -13,7 +13,7 @@ Install npm packages:
 
 Then run the script:
 
-`node app.js <raml_file> <output_file>`
+`node command.js <raml_file> <output_file>`
 
 ## TODO
 - [x] Methods (almost implemented)
