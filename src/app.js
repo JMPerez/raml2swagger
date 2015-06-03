@@ -83,11 +83,21 @@ function processResource(resource, prefix, parentBaseParameters) {
       var body = method.body;
       if (body) {
         if (body['application/json']) {
-          parameters.push({
+          var param = {
             name: 'body',
             in: 'body',
             schema: null  // todo: add this
-          });
+          };
+
+          // json ?
+          if (body['application/json'].schema) {
+            var parsedSchema = JSON.parse(body['application/json'].schema);
+            delete(parsedSchema['$schema']);
+            param.schema = parsedSchema;
+          }
+
+          parameters.push(param);
+
         } else if (body['application/x-www-form-urlencoded']) {
           var params = body['application/x-www-form-urlencoded']
             .formParameters;
@@ -108,8 +118,17 @@ function processResource(resource, prefix, parentBaseParameters) {
         Object.keys(method.responses).map(function(key) {
           // todo: add schema to responseObject
           responseObject[key] = {
-            description: method.responses[key] ? method.responses[key].description : ''
+            description: method.responses[key].description ? method.responses[key].description : ''
           };
+
+          // json ?
+          if (method.responses[key].body &&
+              method.responses[key].body['application/json'] &&
+              method.responses[key].body['application/json'].schema) {
+            var parsedSchema = JSON.parse(method.responses[key].body['application/json'].schema);
+            delete(parsedSchema['$schema']);
+            responseObject[key].schema = parsedSchema;
+          }
         });
         methodInfo.responses = responseObject;
       }
