@@ -118,11 +118,12 @@ function processResource(resource, prefix, parentBaseParameters) {
         Object.keys(method.responses).map(function(key) {
           // todo: add schema to responseObject
           responseObject[key] = {
-            description: method.responses[key].description ? method.responses[key].description : ''
+            description: method.responses[key] && method.responses[key].description ? method.responses[key].description : ''
           };
 
           // json ?
-          if (method.responses[key].body &&
+          if (method.responses[key] &&
+              method.responses[key].body &&
               method.responses[key].body['application/json'] &&
               method.responses[key].body['application/json'].schema) {
             var parsedSchema = JSON.parse(method.responses[key].body['application/json'].schema);
