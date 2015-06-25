@@ -234,7 +234,7 @@ function processFile(sourceFile, callback) {
     callback(output);
 
   }).catch(function(e) {
-    console.error(e);
+    console.error(e.stack ? e.stack : e);
     callback(null);
   });
 }
