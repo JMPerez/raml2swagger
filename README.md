@@ -15,6 +15,10 @@ Then run the script:
 
 `node command.js <raml_file> <output_file>`
 
+## JSON Schemas
+
+Note that [APIKit doesn't have support for JSON Schema Draft 0.4](http://forums.raml.org/t/support-for-json-schema-draft-04-required-properties-and-date-time-validation/278), and Swagger won't validate when using JSON Schema 0.3. You will need to [convert the Schema to 0.4](http://stackoverflow.com/questions/17205260/json-schema-draft4-vs-json-schema-draft3).
+
 ## TODO
 - [x] Methods (almost implemented)
 - [x] Parameters (almost implemented)
